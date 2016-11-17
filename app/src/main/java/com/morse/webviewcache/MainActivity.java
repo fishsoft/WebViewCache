@@ -7,6 +7,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -21,6 +22,9 @@ import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
+
+    private File extStorageAppBasePath = null;
+    private File extStorageAppCachePath = null;
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String APP_CACHE_DIRNAME = "/webcache"; // web缓存目录
@@ -157,6 +161,9 @@ public class MainActivity extends AppCompatActivity {
         mWebView.loadUrl(url);
     }
 
+    /**
+     * 清空缓存
+     */
     public void clearWebViewCache() {
         // 清理WebView缓存数据库
         try {
@@ -185,6 +192,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 删除文件目录
+     * @param file
+     */
     public void deleteFile(File file) {
         Log.i(TAG, "delete file path=" + file.getAbsolutePath());
         if (file.exists()) {
@@ -233,6 +244,38 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             startActivity(intent);
             return true;
+        }
+    }
+
+    /**
+     * 设置缓存到SD卡
+     * @return
+     */
+    @Override
+    public File getCacheDir() {
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            File externalStorageDir = Environment.getExternalStorageDirectory();
+            if (externalStorageDir != null) {
+                // SD卡上的位置
+                extStorageAppBasePath = new File(externalStorageDir.getAbsolutePath() +
+                        File.separator + "Android" + File.separator + "data" + File.separator + getPackageName());
+            }
+
+            if (extStorageAppBasePath != null) {
+                extStorageAppCachePath = new File(extStorageAppBasePath.getAbsolutePath() + File.separator + "webViewCache");
+                boolean isCachePathAvailable = true;
+                if (!extStorageAppCachePath.exists()) {
+                    isCachePathAvailable = extStorageAppCachePath.mkdirs();
+                    if (!isCachePathAvailable) {
+                        extStorageAppCachePath = null;
+                    }
+                }
+            }
+        }
+        if (extStorageAppCachePath != null) {
+            return extStorageAppCachePath;
+        } else {
+            return super.getCacheDir();
         }
     }
 
